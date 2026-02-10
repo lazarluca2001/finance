@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiadás Figyelő</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 p-4 md:p-10">
+
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Költségvetés Tervező</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <input type="text" id="desc" placeholder="Megnevezés" class="p-2 border rounded">
+            <input type="number" id="planned" placeholder="Tervezett (Ft)" class="p-2 border rounded">
+            <input type="number" id="actual" placeholder="Tényleges (Ft)" class="p-2 border rounded">
+            <button onclick="addItem()" class="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition">Hozzáadás</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-center">
+            <div class="bg-blue-50 p-4 rounded shadow-sm">
+                <p class="text-sm text-gray-500 uppercase">Összes Tervezett</p>
+                <p id="totalPlanned" class="text-xl font-bold text-blue-800">0 Ft</p>
+            </div>
+            <div class="bg-green-50 p-4 rounded shadow-sm">
+                <p class="text-sm text-gray-500 uppercase">Összes Tényleges</p>
+                <p id="totalActual" class="text-xl font-bold text-green-800">0 Ft</p>
+            </div>
+            <div class="bg-orange-50 p-4 rounded shadow-sm">
+                <p class="text-sm text-gray-500 uppercase">Egyenleg</p>
+                <p id="balance" class="text-xl font-bold text-orange-800">0 Ft</p>
+            </div>
+        </div>
+
+        <div class="mb-8 h-64">
+            <canvas id="myChart"></canvas>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-700">
+                        <th class="p-3">Tétel</th>
+                        <th class="p-3">Tervezett</th>
+                        <th class="p-3">Tényleges</th>
+                        <th class="p-3">Különbség</th>
+                        <th class="p-3 text-center">Művelet</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    </tbody>
+            </table>
+        </div>
+        <button onclick="clearData()" class="mt-6 text-red-500 text-sm hover:underline font-medium">Összes adat törlése</button>
+    </div>
+
+    <script>
+        let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+        let myChart;
+
+        function updateUI() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            
+            let totalP = 0, totalA = 0;
+
+            expenses.forEach((item, index) => {
+                const diff = item.planned - item.actual;
+                totalP += parseFloat(item.planned);
+                totalA += parseFloat(item.actual);
+
+                const row = `<tr class="border-b">
+                    <td class="p-3 font-medium">${item.desc}</td>
+                    <td class="p-3">${Number(item.planned).toLocaleString()} Ft</td>
+                    <td class="p-3">${Number(item.actual).toLocaleString()} Ft</td>
+                    <td class="p-3 ${diff < 0 ? 'text-red-500' : 'text-green-600'} font-bold">${diff.toLocaleString()} Ft</td>
+                    <td class="p-3 text-center">
+                        <button onclick="removeItem(${index})" class="text-red-400 hover:text-red-600">✖</button>
+                    </td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+
+            document.getElementById('totalPlanned').innerText = totalP.toLocaleString() + ' Ft';
+            document.getElementById('totalActual').innerText = totalA.toLocaleString() + ' Ft';
+            document.getElementById('balance').innerText = (totalP - totalA).toLocaleString() + ' Ft';
+
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            updateChart();
+        }
+
+        function addItem() {
+            const desc = document.getElementById('desc').value;
+            const planned = document.getElementById('planned').value;
+            const actual = document.getElementById('actual').value;
+
+            if(desc && planned && actual) {
+                expenses.push({ desc, planned: parseFloat(planned), actual: parseFloat(actual) });
+                document.getElementById('desc').value = '';
+                document.getElementById('planned').value = '';
+                document.getElementById('actual').value = '';
+                updateUI();
+            }
+        }
+
+        function removeItem(index) {
+            expenses.splice(index, 1);
+            updateUI();
+        }
+
+        function clearData() {
+            if(confirm('Biztosan törölni akarod az összes adatot?')) {
+                expenses = [];
+                updateUI();
+            }
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            if (myChart) myChart.destroy();
+            
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: expenses.map(e => e.desc),
+                    datasets: [
+                        { label: 'Tervezett', data: expenses.map(e => e.planned), backgroundColor: '#3b82f6' },
+                        { label: 'Tényleges', data: expenses.map(e => e.actual), backgroundColor: '#10b981' }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        window.onload = updateUI;
+    </script>
+</body>
+</html>
