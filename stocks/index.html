@@ -88,7 +88,7 @@
 
         async function loadPortfolio() {
             try {
-                const response = await fetch('history.csv');
+                const response = await fetch('dev/history.csv');
                 if (!response.ok) throw new Error("Fájl nem található");
                 
                 const csvText = await response.text();
