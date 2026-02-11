@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tőzsde Portfólió Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-900 text-white font-sans">
+
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-10 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-blue-400">Saját Portfólió Dashboard</h1>
+            <div id="last-update" class="text-gray-400 text-sm">Utolsó frissítés: betöltés...</div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                <p class="text-gray-400 text-sm uppercase">Teljes Portfólió Érték</p>
+                <h2 id="total-value" class="text-4xl font-bold mt-2">$0.00</h2>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                <p class="text-gray-400 text-sm uppercase">Összes Nyereség/Veszteség</p>
+                <h2 id="total-pnl" class="text-4xl font-bold mt-2 text-green-400">+$0.00</h2>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                <p class="text-gray-400 text-sm uppercase">Éves Osztalék</p>
+                <h2 id="total-dividend" class="text-4xl font-bold mt-2 text-blue-300">$0.00</h2>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                <h3 class="text-xl mb-4 text-center">Portfólió Megoszlás</h3>
+                <canvas id="allocationChart"></canvas>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                <h3 class="text-xl mb-4 text-center">Osztalék Bevétel Trend</h3>
+                <canvas id="dividendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
