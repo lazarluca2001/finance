@@ -1,45 +1,44 @@
-// Segédfüggvény a CSV beolvasásához
-async function fetchCSV(url) {
-    const response = await fetch(url);
+async function processHistory() {
+    const response = await fetch('data/history.csv');
     const text = await response.text();
-    return text.split('\n').map(row => row.split(','));
-}
+    
+    // Sorokra bontás
+    const lines = text.split('\n');
+    
+    // Az első 3 sort kihagyjuk (0, 1, 2 index), mert azok a fejlécek
+    const dataLines = lines.slice(3);
 
-async function initDashboard() {
-    // 1. Adatok beolvasása (Példa a Dashboard CSV-ből)
-    // A valóságban ide a GitHub repód elérési útját írd: 'data/IBKR Portfolio - Dashboard.csv'
-    const dashboardData = await fetchCSV('data/history.csv');
+    let totalInvested = 0; // Mennyi pénzt tettél be (Deposit)
+    let totalDividends = 0; // Mennyi osztalékot kaptál
+    let currentCash = 0;
 
-    // Példa: Az értékek kinyerése a snippet alapján (Account Value a 2. sorban van)
-    // Megjegyzés: A CSV formátumtól függően az indexeket finomhangolni kell!
-    const accountValue = dashboardData[1][1].replace(/"/g, ''); 
-    const unrealizedGains = dashboardData[5][1].replace(/"/g, '');
-    const dividendIncome = dashboardData[13][1].replace(/"/g, '');
+    dataLines.forEach(line => {
+        // A CSV sor felvágása (kezelve az idézőjeleket, ha vannak)
+        const columns = line.split(',').map(col => col.replace(/"/g, '').trim());
+        
+        if (columns.length < 8) return; // Üres sorok kiszűrése
 
-    // UI frissítése
-    document.getElementById('total-value').innerText = accountValue;
-    document.getElementById('total-pnl').innerText = unrealizedGains;
-    document.getElementById('total-dividend').innerText = dividendIncome;
+        const action = columns[4]; // Action oszlop (Buy, Deposit, Dividend, stb.)
+        
+        // Összeg kinyerése és tisztítása: "$1,18" -> 1.18
+        let totalStr = columns[7]; // Total oszlop
+        if (!totalStr) return;
+        
+        // Tisztítás: dollárjel ki, szóköz ki, tizedesvessző pontra cserélése
+        let amount = parseFloat(totalStr.replace('$', '').replace(/\s/g, '').replace(',', '.'));
 
-    // 2. Grafikonok kirajzolása (Chart.js)
-    setupCharts();
-}
+        if (isNaN(amount)) return;
 
-function setupCharts() {
-    // Portfólió megoszlás - Kördiagram
-    const ctx1 = document.getElementById('allocationChart').getContext('2d');
-    new Chart(ctx1, {
-        type: 'doughnut',
-        data: {
-            labels: ['BAC', 'MAIN', 'VZ', 'UGI', 'Egyéb'],
-            datasets: [{
-                data: [221, 310, 426, 414, 150], // Ide jönnek majd a kiszámolt értékek
-                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
-                borderWidth: 0
-            }]
-        },
-        options: { plugins: { legend: { position: 'bottom', labels: { color: 'white' } } } }
+        // Logika a típusok szerint
+        if (action === "Deposit") {
+            totalInvested += amount;
+        } else if (action === "Dividend") {
+            totalDividends += amount;
+        }
+        // A "Buy" tranzakciók a készpénzedet csökkentik, de a portfólió értékét nem!
     });
-}
 
-initDashboard();
+    // Adatok kiírása a weboldalra
+    document.getElementById('total-invested').innerText = `$${totalInvested.toFixed(2)}`;
+    document.getElementById('total-dividend').innerText = `$${totalDividends.toFixed(2)}`;
+}
