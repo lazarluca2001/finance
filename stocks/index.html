@@ -25,32 +25,32 @@
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <div class="card border-l-4 border-blue-500">
-                <p class="text-gray-400 text-xs uppercase font-semibold">Összes Befizetés (Kiadás)</p>
-                <h2 id="total-deposit" class="text-3xl font-bold mt-1">$0.00</h2>
+                <p class="text-gray-400 text-xs uppercase font-semibold">Összes Befizetés</p>
+                <h2 id="total-deposit" class="text-3xl font-bold mt-1 text-blue-300">$0.00</h2>
             </div>
             <div class="card border-l-4 border-green-500">
-                <p class="text-gray-400 text-xs uppercase font-semibold">Összes Osztalék (Bevétel)</p>
+                <p class="text-gray-400 text-xs uppercase font-semibold">Összes Osztalék</p>
                 <h2 id="total-dividend" class="text-3xl font-bold mt-1 text-green-400">$0.00</h2>
             </div>
             <div class="card border-l-4 border-purple-500">
                 <p class="text-gray-400 text-xs uppercase font-semibold">Készpénz Egyenleg</p>
-                <h2 id="cash-balance" class="text-3xl font-bold mt-1 text-purple-300">$0.00</h2>
+                <h2 id="cash-balance" class="text-3xl font-bold mt-1 text-purple-200">$0.00</h2>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
             <div class="card">
-                <h3 class="text-lg font-semibold mb-4">Osztalék Bevétel Trend</h3>
+                <h3 class="text-lg font-semibold mb-4 text-center">Havi Osztalék Bevétel</h3>
                 <canvas id="dividendChart" height="200"></canvas>
             </div>
             <div class="card">
-                <h3 class="text-lg font-semibold mb-4">Tranzakciók megoszlása</h3>
+                <h3 class="text-lg font-semibold mb-4 text-center">Tranzakciók Aránya</h3>
                 <canvas id="actionChart" height="200"></canvas>
             </div>
         </div>
 
         <div class="card overflow-hidden">
-            <h3 class="text-lg font-semibold mb-4 text-gray-300">Utolsó Tranzakciók</h3>
+            <h3 class="text-lg font-semibold mb-4 text-gray-300">Tranzakciós Előzmények</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-gray-800 text-gray-400 uppercase text-xs">
@@ -61,54 +61,56 @@
                             <th class="p-3 text-right">Összeg</th>
                         </tr>
                     </thead>
-                    <tbody id="transaction-table">
-                        </tbody>
+                    <tbody id="transaction-table"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <script>
-        // Szám formázása (Pl: "$1 234,56" -> 1234.56)
+        // Ez a függvény intelligensen tisztítja a számokat (kezeli a dollárjelet, vesszőt, idézőjelet)
         function cleanAmount(str) {
             if (!str) return 0;
-            // Eltávolítjuk a dollárjelet, a nem törhető szóközöket és a pontot mint ezresválasztót
-            let clean = str.replace(/[$\s\xA0]/g, '').replace(/\./g, '');
-            // A magyaros tizedesvesszőt pontra cseréljük
-            clean = clean.replace(',', '.');
+            // Eltávolítunk mindent, ami nem szám, vessző vagy pont
+            let clean = str.replace(/[/"$\s\xA0]/g, '').trim();
+            // Ha van benne tizedesvessző (magyar formátum), alakítsuk ponttá a számításhoz
+            if (clean.includes(',')) {
+                clean = clean.replace(/\./g, '').replace(',', '.');
+            }
             return parseFloat(clean) || 0;
+        }
+
+        // Ez a függvény vágja szét a CSV sorait úgy, hogy az idézőjelben lévő vesszőket békén hagyja
+        function splitCSVLine(line) {
+            const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
+            return line.split(regex).map(c => c.replace(/"/g, '').trim());
         }
 
         async function loadPortfolio() {
             try {
-                // FONTOS: A CSV fájl neve egyezzen azzal, amit feltöltöttél
                 const response = await fetch('history.csv');
-                const csvText = await response.text();
+                if (!response.ok) throw new Error("Fájl nem található");
                 
+                const csvText = await response.text();
                 const rows = csvText.split('\n');
-                // Az első 3 sor fejléc, így a 4. sortól indulunk (index 3)
-                const dataRows = rows.slice(3);
+                const dataRows = rows.slice(3); // Első 3 sor fejléc kihagyása
 
-                let totalDeposit = 0;
-                let totalDividend = 0;
-                let cashBalance = 0;
-                let monthlyDividends = {};
-                let actionCounts = { "Buy": 0, "Deposit": 0, "Dividend": 0 };
+                let totalDeposit = 0, totalDividend = 0, cashBalance = 0;
+                let monthlyDividends = {}, actionCounts = { "Buy": 0, "Deposit": 0, "Dividend": 0 };
 
                 const tableBody = document.getElementById('transaction-table');
 
                 dataRows.forEach(row => {
-                    // CSV sor felvágása (kezelve az idézőjeleket)
-                    const cols = row.split(',').map(c => c.replace(/"/g, '').trim());
+                    if (!row.trim()) return;
+                    const cols = splitCSVLine(row);
                     
                     if (cols.length < 8) return;
 
-                    const date = cols[2];   // Dátum oszlop
-                    const ticker = cols[3]; // Ticker oszlop
-                    const action = cols[4]; // Action oszlop
+                    const date = cols[2];   // Dátum (YYYY.MM.DD)
+                    const ticker = cols[3]; // Ticker / Cash
+                    const action = cols[4]; // Buy, Deposit, Dividend
                     const amount = cleanAmount(cols[7]); // Total oszlop
 
-                    // Számítások
                     if (action === 'Deposit') {
                         totalDeposit += amount;
                         cashBalance += amount;
@@ -118,67 +120,64 @@
                         cashBalance += amount;
                         actionCounts['Dividend']++;
                         
-                        // Havi bontás a grafikonhoz (YYYY.MM formátum)
-                        const month = date.substring(0, 7);
+                        const month = date.substring(0, 7); // Pl: "2024.10"
                         monthlyDividends[month] = (monthlyDividends[month] || 0) + amount;
                     } else if (action === 'Buy') {
-                        cashBalance -= amount; // Vásárlásnál csökken a készpénz
+                        cashBalance -= amount;
                         actionCounts['Buy']++;
                     }
 
-                    // Táblázat építése (csak az utolsó 10 sort adjuk hozzá a példa kedvéért)
-                    if (date) {
-                        const tr = document.createElement('tr');
-                        tr.className = "border-b border-gray-700 hover:bg-gray-800";
-                        tr.innerHTML = `
-                            <td class="p-3 text-gray-400">${date}</td>
-                            <td class="p-3 font-bold">${ticker}</td>
-                            <td class="p-3"><span class="px-2 py-1 rounded text-[10px] ${action === 'Buy' ? 'bg-red-900 text-red-200' : 'bg-green-900 text-green-200'}">${action}</span></td>
-                            <td class="p-3 text-right font-mono">$${amount.toFixed(2)}</td>
-                        `;
-                        tableBody.prepend(tr);
-                    }
+                    // Sor hozzáadása a táblázathoz
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b border-gray-700 hover:bg-gray-800 transition";
+                    tr.innerHTML = `
+                        <td class="p-3 text-gray-400">${date}</td>
+                        <td class="p-3 font-bold text-blue-300">${ticker}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${action === 'Buy' ? 'bg-red-900 text-red-200' : (action === 'Deposit' ? 'bg-blue-900 text-blue-200' : 'bg-green-900 text-green-200')}">${action}</span></td>
+                        <td class="p-3 text-right font-mono font-bold">$${amount.toFixed(2)}</td>
+                    `;
+                    tableBody.prepend(tr);
                 });
 
-                // UI Frissítése
-                document.getElementById('total-deposit').innerText = `$${totalDeposit.toLocaleString('hu-HU')}`;
-                document.getElementById('total-dividend').innerText = `$${totalDividend.toLocaleString('hu-HU')}`;
-                document.getElementById('cash-balance').innerText = `$${cashBalance.toLocaleString('hu-HU')}`;
-                document.getElementById('status').innerText = "Adatok Frissítve";
+                // Számok formázott kiírása
+                document.getElementById('total-deposit').innerText = `$${totalDeposit.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                document.getElementById('total-dividend').innerText = `$${totalDividend.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                document.getElementById('cash-balance').innerText = `$${cashBalance.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                
+                document.getElementById('status').innerText = "Adatok Betöltve";
                 document.getElementById('status').className = "px-3 py-1 rounded text-xs font-mono bg-green-900 text-green-200";
 
                 renderCharts(monthlyDividends, actionCounts);
 
             } catch (error) {
-                console.error("Hiba történt:", error);
-                document.getElementById('status').innerText = "Hiba a betöltéskor!";
+                console.error(error);
+                document.getElementById('status').innerText = "Hiba: history.csv nem található!";
                 document.getElementById('status').className = "px-3 py-1 rounded text-xs font-mono bg-red-900 text-red-200";
             }
         }
 
         function renderCharts(dividendData, actionData) {
-            // Osztalék trend grafikon
+            // Osztalék grafikon (rendezve dátum szerint)
+            const sortedMonths = Object.keys(dividendData).sort();
             const divCtx = document.getElementById('dividendChart').getContext('2d');
             new Chart(divCtx, {
-                type: 'line',
+                type: 'bar',
                 data: {
-                    labels: Object.keys(dividendData),
+                    labels: sortedMonths,
                     datasets: [{
                         label: 'Havi Osztalék ($)',
-                        data: Object.values(dividendData),
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        fill: true,
-                        tension: 0.3
+                        data: sortedMonths.map(m => dividendData[m]),
+                        backgroundColor: '#10b981',
+                        borderRadius: 5
                     }]
                 },
                 options: { 
                     plugins: { legend: { display: false } },
-                    scales: { y: { grid: { color: '#374151' } }, x: { grid: { display: false } } }
+                    scales: { y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af' } }, x: { ticks: { color: '#9ca3af' } } }
                 }
             });
 
-            // Akciók megoszlása grafikon
+            // Kördiagram a tranzakciókról
             const actCtx = document.getElementById('actionChart').getContext('2d');
             new Chart(actCtx, {
                 type: 'doughnut',
