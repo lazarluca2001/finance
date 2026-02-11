@@ -3,101 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kiadás Figyelő</title>
+    <title>Saját Költségvetésem 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="bg-gray-100 p-4 md:p-10">
+<body class="bg-slate-50 p-4 md:p-8">
 
-    <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md">
-        <h1 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Költségvetés Tervező</h1>
+    <div class="max-w-5xl mx-auto">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-extrabold text-slate-800">Költségvetés 2026</h1>
+            <p class="text-slate-500 font-medium">GitHub Pages alapú kiadáskövető</p>
+        </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <input type="text" id="desc" placeholder="Megnevezés" class="p-2 border rounded">
-            <input type="number" id="planned" placeholder="Tervezett (Ft)" class="p-2 border rounded">
-            <input type="number" id="actual" placeholder="Tényleges (Ft)" class="p-2 border rounded">
-            <button onclick="addItem()" class="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition">Hozzáadás</button>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-center">
-            <div class="bg-blue-50 p-4 rounded shadow-sm">
-                <p class="text-sm text-gray-500 uppercase">Összes Tervezett</p>
-                <p id="totalPlanned" class="text-xl font-bold text-blue-800">0 Ft</p>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div class="md:col-span-1">
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Kategória</label>
+                    <select id="category" class="w-full p-2.5 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-400 text-sm font-medium">
+                        <option value="ÁLLANDÓ KÖLTSÉGEK">Állandó költségek</option>
+                        <option value="KÖZLEKEDÉS">Közlekedés</option>
+                        <option value="BEVÁSÁRLÁS">Bevásárlás</option>
+                        <option value="TÁNCÓRÁK">Táncórák</option>
+                        <option value="EVENT KÖLTSÉGEK">Event költségek</option>
+                        <option value="MEGTAKARÍTÁSOK, PÉNZÜGYEK">Megtakarítások</option>
+                        <option value="EGYÉB">Egyéb</option>
+                    </select>
+                </div>
+                <div class="md:col-span-1">
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Megnevezés</label>
+                    <input type="text" id="desc" placeholder="pl. Rezsi, Bérlet..." class="w-full p-2.5 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-400 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Terv (Ft)</label>
+                    <input type="number" id="planned" class="w-full p-2.5 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-400 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Tény (Ft)</label>
+                    <input type="number" id="actual" class="w-full p-2.5 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-400 text-sm">
+                </div>
+                <div class="flex items-end">
+                    <button onclick="addItem()" class="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 uppercase text-xs tracking-wider">
+                        Hozzáadás
+                    </button>
+                </div>
             </div>
-            <div class="bg-green-50 p-4 rounded shadow-sm">
-                <p class="text-sm text-gray-500 uppercase">Összes Tényleges</p>
-                <p id="totalActual" class="text-xl font-bold text-green-800">0 Ft</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Terv vs Valóság (Tételek)</h3>
+                <div class="h-64">
+                    <canvas id="barChart"></canvas>
+                </div>
             </div>
-            <div class="bg-orange-50 p-4 rounded shadow-sm">
-                <p class="text-sm text-gray-500 uppercase">Egyenleg</p>
-                <p id="balance" class="text-xl font-bold text-orange-800">0 Ft</p>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center">
+                <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 w-full tracking-widest text-center">Költés megoszlása</h3>
+                <div class="h-64 w-full">
+                    <canvas id="doughnutChart"></canvas>
+                </div>
             </div>
         </div>
 
-        <div class="mb-8 h-64">
-            <canvas id="myChart"></canvas>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 border-b border-slate-100 text-slate-400 uppercase text-[10px] font-black">
+                        <tr>
+                            <th class="p-4">Kategória</th>
+                            <th class="p-4">Tétel</th>
+                            <th class="p-4 text-right">Tervezett</th>
+                            <th class="p-4 text-right">Tényleges</th>
+                            <th class="p-4 text-right">Eltérés</th>
+                            <th class="p-4 text-center">Törlés</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-50 text-sm">
+                        </tbody>
+                </table>
+            </div>
         </div>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-gray-200 text-gray-700">
-                        <th class="p-3">Tétel</th>
-                        <th class="p-3">Tervezett</th>
-                        <th class="p-3">Tényleges</th>
-                        <th class="p-3">Különbség</th>
-                        <th class="p-3 text-center">Művelet</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    </tbody>
-            </table>
+        
+        <div class="mt-6 flex justify-between items-center px-2">
+            <button onclick="exportToCSV()" class="text-indigo-600 text-xs font-bold hover:underline">📥 Adatok mentése CSV-be</button>
+            <button onclick="clearData()" class="text-red-400 hover:text-red-600 text-xs font-bold transition">🗑 Minden adat törlése</button>
         </div>
-        <button onclick="clearData()" class="mt-6 text-red-500 text-sm hover:underline font-medium">Összes adat törlése</button>
     </div>
 
     <script>
-        let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
-        let myChart;
+        let expenses = JSON.parse(localStorage.getItem('my_budget_2026')) || [];
+        let barChart, doughnutChart;
 
         function updateUI() {
             const tableBody = document.getElementById('tableBody');
             tableBody.innerHTML = '';
             
-            let totalP = 0, totalA = 0;
-
             expenses.forEach((item, index) => {
                 const diff = item.planned - item.actual;
-                totalP += parseFloat(item.planned);
-                totalA += parseFloat(item.actual);
-
-                const row = `<tr class="border-b">
-                    <td class="p-3 font-medium">${item.desc}</td>
-                    <td class="p-3">${Number(item.planned).toLocaleString()} Ft</td>
-                    <td class="p-3">${Number(item.actual).toLocaleString()} Ft</td>
-                    <td class="p-3 ${diff < 0 ? 'text-red-500' : 'text-green-600'} font-bold">${diff.toLocaleString()} Ft</td>
-                    <td class="p-3 text-center">
-                        <button onclick="removeItem(${index})" class="text-red-400 hover:text-red-600">✖</button>
-                    </td>
-                </tr>`;
+                const row = `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-4"><span class="px-2 py-1 rounded-md bg-indigo-50 text-[10px] font-bold text-indigo-600 uppercase tracking-tight">${item.category}</span></td>
+                        <td class="p-4 font-semibold text-slate-700">${item.desc}</td>
+                        <td class="p-4 text-right text-slate-500">${Number(item.planned).toLocaleString()} Ft</td>
+                        <td class="p-4 text-right font-medium text-slate-700">${Number(item.actual).toLocaleString()} Ft</td>
+                        <td class="p-4 text-right font-bold ${diff < 0 ? 'text-rose-500' : 'text-emerald-500'}">${diff.toLocaleString()} Ft</td>
+                        <td class="p-4 text-center">
+                            <button onclick="removeItem(${index})" class="text-slate-300 hover:text-rose-500 transition-colors">✕</button>
+                        </td>
+                    </tr>`;
                 tableBody.innerHTML += row;
             });
 
-            document.getElementById('totalPlanned').innerText = totalP.toLocaleString() + ' Ft';
-            document.getElementById('totalActual').innerText = totalA.toLocaleString() + ' Ft';
-            document.getElementById('balance').innerText = (totalP - totalA).toLocaleString() + ' Ft';
-
-            localStorage.setItem('expenses', JSON.stringify(expenses));
-            updateChart();
+            localStorage.setItem('my_budget_2026', JSON.stringify(expenses));
+            renderCharts();
         }
 
         function addItem() {
             const desc = document.getElementById('desc').value;
+            const category = document.getElementById('category').value;
             const planned = document.getElementById('planned').value;
             const actual = document.getElementById('actual').value;
 
             if(desc && planned && actual) {
-                expenses.push({ desc, planned: parseFloat(planned), actual: parseFloat(actual) });
+                expenses.push({ desc, category, planned: Number(planned), actual: Number(actual) });
                 document.getElementById('desc').value = '';
                 document.getElementById('planned').value = '';
                 document.getElementById('actual').value = '';
@@ -111,26 +138,55 @@
         }
 
         function clearData() {
-            if(confirm('Biztosan törölni akarod az összes adatot?')) {
+            if(confirm('Biztosan törölni szeretnél minden elmentett adatot?')) {
                 expenses = [];
                 updateUI();
             }
         }
 
-        function updateChart() {
-            const ctx = document.getElementById('myChart').getContext('2d');
-            if (myChart) myChart.destroy();
-            
-            myChart = new Chart(ctx, {
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,Kategoria,Tetel,Tervezett,Teny,Elteres\n";
+            expenses.forEach(e => {
+                csvContent += `${e.category},${e.desc},${e.planned},${e.actual},${e.planned - e.actual}\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "koltsegvetes_export.csv");
+            document.body.appendChild(link);
+            link.click();
+        }
+
+        function renderCharts() {
+            const ctxBar = document.getElementById('barChart').getContext('2d');
+            if (barChart) barChart.destroy();
+            barChart = new Chart(ctxBar, {
                 type: 'bar',
                 data: {
                     labels: expenses.map(e => e.desc),
                     datasets: [
-                        { label: 'Tervezett', data: expenses.map(e => e.planned), backgroundColor: '#3b82f6' },
-                        { label: 'Tényleges', data: expenses.map(e => e.actual), backgroundColor: '#10b981' }
+                        { label: 'Terv', data: expenses.map(e => e.planned), backgroundColor: '#818cf8', borderRadius: 4 },
+                        { label: 'Tény', data: expenses.map(e => e.actual), backgroundColor: '#10b981', borderRadius: 4 }
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            const catTotals = {};
+            expenses.forEach(e => { catTotals[e.category] = (catTotals[e.category] || 0) + e.actual; });
+
+            const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
+            if (doughnutChart) doughnutChart.destroy();
+            doughnutChart = new Chart(ctxDoughnut, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(catTotals),
+                    datasets: [{
+                        data: Object.values(catTotals),
+                        backgroundColor: ['#f87171', '#fbbf24', '#34d399', '#60a5fa', '#818cf8', '#a78bfa', '#cbd5e1']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
             });
         }
 
