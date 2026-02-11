@@ -8,7 +8,7 @@ async function fetchCSV(url) {
 async function initDashboard() {
     // 1. Adatok beolvasása (Példa a Dashboard CSV-ből)
     // A valóságban ide a GitHub repód elérési útját írd: 'data/IBKR Portfolio - Dashboard.csv'
-    const dashboardData = await fetchCSV('data/IBKR Portfolio - Dashboard.csv');
+    const dashboardData = await fetchCSV('data/history.csv');
 
     // Példa: Az értékek kinyerése a snippet alapján (Account Value a 2. sorban van)
     // Megjegyzés: A CSV formátumtól függően az indexeket finomhangolni kell!
