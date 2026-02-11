@@ -82,7 +82,7 @@
         async function loadPortfolio() {
             try {
                 // FONTOS: A CSV fájl neve egyezzen azzal, amit feltöltöttél
-                const response = await fetch('IBKR Portfolio - History.csv');
+                const response = await fetch('history.csv');
                 const csvText = await response.text();
                 
                 const rows = csvText.split('\n');
