@@ -1,7 +1,7 @@
 {
   "name": "Forintnapló",
   "short_name": "Forintnapló",
-  "description": "Havi költések rögzítése, Google Táblázat szinkronnal.",
+  "description": "Kiadások, bevételek, tartozások, számlák, események és célok, Google Táblázat szinkronnal.",
   "lang": "hu",
   "start_url": "./",
   "scope": "./",
@@ -10,7 +10,52 @@
   "background_color": "#F1F4F1",
   "theme_color": "#1F5C4E",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Új kiadás",
+      "short_name": "Kiadás",
+      "url": "./#kiadas",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Új bevétel",
+      "short_name": "Bevétel",
+      "url": "./#bevetel",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Új tartozás",
+      "short_name": "Tartozás",
+      "url": "./#tartozas",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }

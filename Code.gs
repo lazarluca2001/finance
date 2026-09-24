@@ -1,17 +1,17 @@
 /**
- * Forintnapló – Google Táblázat szinkron (2. verzió)
+ * Forintnapló – Google Táblázat szinkron (4. verzió)
  *
  * A telefonos Forintnapló ezen keresztül olvassa és írja a táblázatot:
- * Terv, Tranzakciók, Számlák, Átvezetések, Tartozások. A Terv és az
- * Áttekintés lapot nyugodtan szerkesztheted kézzel. A többi lapon is
- * javíthatsz, csak az Azonosító oszlophoz ne nyúlj.
+ * Költségterv, Terv, Tranzakciók, Számlák, Átvezetések, Értékelések, Tartozások,
+ * Események, Határidők, Célok. Üres táblázatban magától létrehozza a lapokat.
+ * Kézzel is szerkesztheted őket, csak az Azonosító oszlophoz ne nyúlj.
  *
  * Telepítés és frissítés: lásd README.md.
  */
 
 const TOKEN = 'ide-a-titkos-szavad';
 
-const VERSION = 2;
+const VERSION = 4;
 const FT = '#,##0 "Ft";-#,##0 "Ft";"–"';
 const INCOME = 'BEVÉTEL';
 const DEBT_PLUS = ['Nekem tartozik', 'Visszafizettem'];   // ettől nő, amennyivel nekem tartoznak
@@ -21,12 +21,13 @@ const SHEETS = {
   plan: { name: 'Terv', head: ['Hónap', 'Csoport', 'Tétel', 'Tervezett', 'Tényleges', 'Különbözet'] },
   tx: {
     name: 'Tranzakciók', key: 'id',
-    head: ['Dátum', 'Hónap', 'Csoport', 'Tétel', 'Összeg', 'Megjegyzés', 'Azonosító', 'Számla'],
-    fields: [['date', 'date'], ['month', 'month'], ['group', 'text'], ['item', 'text'], ['amount', 'num'], ['note', 'text'], ['id', 'text'], ['account', 'text']]
+    head: ['Dátum', 'Hónap', 'Csoport', 'Tétel', 'Összeg', 'Megjegyzés', 'Azonosító', 'Számla', 'Deviza', 'Devizaösszeg', 'Árfolyam', 'Esemény'],
+    fields: [['date', 'date'], ['month', 'month'], ['group', 'text'], ['item', 'text'], ['amount', 'num'], ['note', 'text'], ['id', 'text'], ['account', 'text'],
+             ['currency', 'text'], ['foreignAmount', 'numx'], ['rate', 'numx'], ['event', 'text']]
   },
   account: {
     name: 'Számlák', key: 'name',
-    head: ['Számla', 'Típus', 'Nyitó egyenleg', 'Nyitó dátum', 'Egyenleg'],
+    head: ['Számla', 'Típus', 'Nyitó egyenleg', 'Nyitó dátum'],
     fields: [['name', 'text'], ['kind', 'text'], ['opening', 'num'], ['openingDate', 'date']]
   },
   transfer: {
@@ -38,6 +39,31 @@ const SHEETS = {
     name: 'Tartozások', key: 'id',
     head: ['Dátum', 'Személy', 'Típus', 'Összeg', 'Határidő', 'Számla', 'Megjegyzés', 'Azonosító', 'Nekem tartozik (±)'],
     fields: [['date', 'date'], ['person', 'text'], ['type', 'text'], ['amount', 'num'], ['due', 'date'], ['account', 'text'], ['note', 'text'], ['id', 'text']]
+  },
+  recurring: {
+    name: 'Költségterv', key: 'id',
+    head: ['Tétel', 'Csoport', 'Összeg', 'Nap', 'Számla', 'Aktív', 'Kezdő hónap', 'Utolsó hónap', 'Kihagyott hónapok', 'Azonosító', 'Típus'],
+    fields: [['item', 'text'], ['group', 'text'], ['amount', 'num'], ['day', 'numx'], ['account', 'text'], ['active', 'text'], ['from', 'month'], ['to', 'month'], ['skipped', 'text'], ['id', 'text'], ['mode', 'text']]
+  },
+  valuation: {
+    name: 'Értékelések', key: 'id',
+    head: ['Dátum', 'Számla', 'Érték', 'Megjegyzés', 'Azonosító'],
+    fields: [['date', 'date'], ['account', 'text'], ['value', 'num'], ['note', 'text'], ['id', 'text']]
+  },
+  event: {
+    name: 'Események', key: 'id',
+    head: ['Esemény', 'Kezdés', 'Vége', 'Helyszín', 'Keret', 'Megjegyzés', 'Azonosító'],
+    fields: [['name', 'text'], ['start', 'date'], ['end', 'date'], ['place', 'text'], ['budget', 'num'], ['note', 'text'], ['id', 'text']]
+  },
+  deadline: {
+    name: 'Határidők', key: 'id',
+    head: ['Határidő', 'Teendő', 'Összeg', 'Esemény', 'Kész', 'Azonosító'],
+    fields: [['date', 'date'], ['title', 'text'], ['amount', 'num'], ['event', 'text'], ['done', 'text'], ['id', 'text']]
+  },
+  goal: {
+    name: 'Célok', key: 'id',
+    head: ['Cél', 'Célösszeg', 'Félretett', 'Határidő', 'Számla', 'Megjegyzés', 'Azonosító'],
+    fields: [['name', 'text'], ['target', 'num'], ['saved', 'num'], ['due', 'date'], ['account', 'text'], ['note', 'text'], ['id', 'text']]
   }
 };
 
@@ -63,6 +89,8 @@ function doPost(e) {
         if (op.op === 'upsert') upsert_(op.kind, op.rec);
         else if (op.op === 'remove') remove_(op.kind, op.id);
         else if (op.op === 'addItem') ensureItem_(op.item.month, op.item.group, op.item.item, Number(op.item.planned) || 0);
+        else if (op.op === 'setPlan') setPlan_(op.row, op.old);
+        else if (op.op === 'removePlan') removePlan_(op.row);
         // 1. verziós app műveletei
         else if (op.op === 'add' || op.op === 'update') upsert_('tx', op.tx);
         else if (op.op === 'delete') remove_('tx', op.id);
@@ -102,6 +130,11 @@ function state_() {
     accounts: readSheet_('account', tz).filter(function (a) { return a.name; }),
     transfers: readSheet_('transfer', tz).filter(function (t) { return t.amount; }),
     debts: readSheet_('debt', tz).filter(function (d) { return d.amount && d.person; }),
+    recurring: readSheet_('recurring', tz).filter(function (r) { return r.item; }),
+    valuations: readSheet_('valuation', tz).filter(function (v) { return v.account; }),
+    events: readSheet_('event', tz).filter(function (e) { return e.name; }),
+    deadlines: readSheet_('deadline', tz).filter(function (d) { return d.title; }),
+    goals: readSheet_('goal', tz).filter(function (g) { return g.name; }),
     syncedAt: new Date().toISOString()
   };
 }
@@ -119,6 +152,7 @@ function readSheet_(kind, tz) {
       if (f[1] === 'date') rec[f[0]] = x instanceof Date ? Utilities.formatDate(x, tz, 'yyyy-MM-dd') : String(x || '').slice(0, 10);
       else if (f[1] === 'month') rec[f[0]] = x ? monthStr_(x, tz) : '';
       else if (f[1] === 'num') rec[f[0]] = num_(x);
+      else if (f[1] === 'numx') rec[f[0]] = x === '' || x == null ? '' : num_(x);
       else rec[f[0]] = String(x == null ? '' : x).trim();
     });
     if (idCol >= 0 && !rec.id && v[i].some(function (x) { return x !== ''; })) {
@@ -145,16 +179,18 @@ function upsert_(kind, rec) {
     if (f[1] === 'month' || f[1] === 'text') cell.setNumberFormat('@');
     else if (f[1] === 'date') cell.setNumberFormat('yyyy.mm.dd');
     else if (f[1] === 'num') cell.setNumberFormat(FT);
+    else if (f[1] === 'numx') cell.setNumberFormat('0.####');
   });
   const values = def.fields.map(function (f) {
     const x = rec[f[0]];
     if (f[1] === 'date') return x ? toDate_(x) : '';
     if (f[1] === 'num') return Number(x) || 0;
+    if (f[1] === 'numx') return x === '' || x == null ? '' : Number(x);
     return x == null ? '' : String(x);
   });
   sh.getRange(row, 1, 1, values.length).setValues([values]);
   formulas_(kind, sh, row);
-  if (kind === 'tx') ensureItem_(rec.month, rec.group, rec.item, 0);
+  // a tervet az app kezeli: a költés nem hoz létre tervsort
 }
 
 function remove_(kind, id) {
@@ -165,18 +201,7 @@ function remove_(kind, id) {
 }
 
 function formulas_(kind, sh, r) {
-  if (kind === 'account') {
-    const d = '">="&$D' + r, a = '$A' + r;
-    const T = "'Tranzakciók'!", A = "'Átvezetések'!", D = "'Tartozások'!";
-    sh.getRange(r, 5).setFormula(
-      '=$C' + r +
-      '+SUMIFS(' + T + '$E:$E,' + T + '$H:$H,' + a + ',' + T + '$C:$C,"' + INCOME + '",' + T + '$A:$A,' + d + ')' +
-      '-SUMIFS(' + T + '$E:$E,' + T + '$H:$H,' + a + ',' + T + '$C:$C,"<>' + INCOME + '",' + T + '$A:$A,' + d + ')' +
-      '+SUMIFS(' + A + '$D:$D,' + A + '$C:$C,' + a + ',' + A + '$A:$A,' + d + ')' +
-      '-SUMIFS(' + A + '$D:$D,' + A + '$B:$B,' + a + ',' + A + '$A:$A,' + d + ')' +
-      '-SUMIFS(' + D + '$I:$I,' + D + '$F:$F,' + a + ',' + D + '$A:$A,' + d + ')'
-    ).setNumberFormat(FT);
-  } else if (kind === 'debt') {
+  if (kind === 'debt') {
     sh.getRange(r, 9).setFormula('=IF(OR($C' + r + '="' + DEBT_PLUS[0] + '",$C' + r + '="' + DEBT_PLUS[1] + '"),$D' + r + ',-$D' + r + ')').setNumberFormat(FT);
   }
 }
@@ -195,6 +220,30 @@ function ensureItem_(month, group, item, planned) {
   sh.getRange(r, 5).setFormula('=SUMIFS(' + T + '$E:$E,' + T + '$B:$B,$A' + r + ',' + T + '$C:$C,$B' + r + ',' + T + '$D:$D,$C' + r + ')');
   sh.getRange(r, 6).setFormula('=IF($B' + r + '="' + INCOME + '",E' + r + '-D' + r + ',D' + r + '-E' + r + ')');
   sh.getRange(r, 4, 1, 3).setNumberFormat(FT);
+}
+
+function findPlanRow_(sh, tz, month, group, item) {
+  const v = sh.getDataRange().getValues();
+  for (let i = 1; i < v.length; i++) {
+    if (monthStr_(v[i][0], tz) === month && String(v[i][1]).trim() === group && String(v[i][2]).trim() === item) return i + 1;
+  }
+  return 0;
+}
+
+// Tervsor beállítása az appból: összeg módosítása, átnevezés (old), vagy új sor.
+function setPlan_(row, old) {
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEETS.plan.name);
+  const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  const r = findPlanRow_(sh, tz, row.month, old ? old.group : row.group, old ? old.item : row.item);
+  if (!r) return ensureItem_(row.month, row.group, row.item, Number(row.planned) || 0);
+  sh.getRange(r, 2, 1, 3).setValues([[row.group, row.item, Number(row.planned) || 0]]);
+}
+
+function removePlan_(row) {
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEETS.plan.name);
+  const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+  const r = findPlanRow_(sh, tz, row.month, row.group, row.item);
+  if (r) sh.deleteRow(r);
 }
 
 /* ---------- segédek ---------- */
