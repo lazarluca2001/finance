@@ -1,6 +1,13 @@
-# Forintnapló – havi költések
+# Forintnapló – pénzügyi napló
 
-Telefonra tehető költségnapló. A **Hónap** lapon látod, mennyit költöttél a tervhez képest csoportonként és tételenként. A **Költések** lapon napokra bontva jelennek meg a rögzített tételek, a **+ Költés** gombbal pedig pár másodperc alatt felveszel egy újat. A lapok között a bal felső hamburger menüvel váltasz. GitHub Pages-en fut, internet nélkül is megnyílik, és minden mentést beír a Google Táblázatodba. Külön adatbázis nincs: a táblázat a fő példány.
+Telefonra tehető pénzügyi napló. A lapok között a bal felső hamburger menüvel váltasz:
+
+- **Áttekintés:** nettó vagyon (számlák + amivel neked tartoznak − amivel te tartozol), az aktuális hónap kerete, nyitott tartozások határidővel, számlaegyenlegek, és gyors gombok: Kiadás, Bevétel, Tartozás, Átvezetés.
+- **Havi keret:** mennyit költöttél a tervhez képest, csoportonként és tételenként.
+- **Tranzakciók:** a hónap összes mozgása napokra bontva, típus, csoport és számla szerint szűrhetően. Bármelyikre koppintva szerkesztheted vagy törölheted.
+- **Tartozások:** személyenként látod, ki mennyivel tartozik neked, és te kinek. Részletek, határidő, lejárt jelzés, és egy gombnyomással rögzíted, ha megadta vagy megadtad.
+- **Számlák:** bankszámla, készpénz, megtakarítás stb. egyenlege, és átvezetés köztük.
+- **Statisztika:** havi bevétel és kiadás egy évre, kiadás csoportonként, és a swing eventek költése eseményenként (az EVENT KÖLTSÉGEK tételeiből, pl. „Milan Modern Swing - étel”). GitHub Pages-en fut, internet nélkül is megnyílik, és minden mentést beír a Google Táblázatodba. Külön adatbázis nincs: a táblázat a fő példány.
 
 ## 1. Feltöltés GitHubra (kb. 5 perc)
 
@@ -41,7 +48,12 @@ A jobb felső sarokban ezután a „Szinkronizálva” felirat látszik. Ha az �
 
 - **Áttekintés:** havonta a tervezett és a tényleges bevétel, kiadás és egyenleg. Csak képletek vannak rajta.
 - **Terv:** hónap, csoport, tétel, tervezett összeg. **Itt tervezel**: a kék Tervezett oszlopot írd át, vagy vegyél fel új sort (a Tényleges és a Különbözet oszlop képletét másold le a fenti sorból). A hónapot `2026-11` alakban írd, szövegként: ha a táblázat dátummá alakítaná, írj elé egy aposztrófot (`'2026-11`). Az app minden szinkronnál innen olvassa a tervet.
-- **Tranzakciók:** egy sor egy költés vagy bevétel. Az app ide ír. Kézzel is javíthatsz vagy felvehetsz sort, csak az **Azonosító** oszlopot ne módosítsd (új sornál hagyd üresen, a szkript kitölti).
+- **Tranzakciók:** egy sor egy költés vagy bevétel, a Számla oszlopban azzal, honnan ment. Az app ide ír. Kézzel is javíthatsz vagy felvehetsz sort, csak az **Azonosító** oszlopot ne módosítsd (új sornál hagyd üresen, a szkript kitölti).
+- **Számlák:** a számláid nyitó egyenleggel és nyitó dátummal. Az Egyenleg oszlop képlet: nyitó egyenleg + a nyitó dátum óta rá rögzített bevételek − kiadások ± átvezetések és tartozásmozgások. Számlát az appban vegyél fel, mert a képletet a szinkron írja be.
+- **Átvezetések:** pénz mozgatása a saját számláid között (pl. megtakarításba). Nem számít kiadásnak.
+- **Tartozások:** egy sor egy esemény: *Nekem tartozik* (kölcsönadtál vagy fizettél helyette), *Én tartozom*, *Visszakaptam*, *Visszafizettem*. Az utolsó oszlop előjeles összeg, így `=SUMIF(B:B;"Marcell";I:I)` megmondja, mennyivel tartozik Marcell. Ha a Számla üres, a pénz nem mozgott egyik számládon sem (pl. valaki kifizette a vacsorádat).
+
+Tipp a számlákhoz: vegyél fel egy számlát a mai egyenleggel és mai dátummal, és állítsd be alapértelmezettnek (Adatok és szinkron). Onnantól minden új kiadás arról megy, hacsak nem választasz mást. A régi, importált tételek a nyitó dátum előttiek, ezért nem számolja bele őket.
 
 Bevételt a + Költés lapon a **Bevétel** fülön rögzítesz. A terven kívüli tételeket (**+ Új tétel…**) a szkript 0 Ft-os tervvel felveszi a Terv lapra.
 
@@ -53,7 +65,11 @@ Ha új fájlokat kapsz, töltsd fel őket ugyanígy (**Add file → Upload files
 
 Ha a `Code.gs` is változik: a táblázatban **Bővítmények → Apps Script**, cseréld le a kódot, írd vissza a TOKEN-t, **Mentés**, majd **Telepítés → Telepítések kezelése → ceruza ikon → Verzió: Új verzió → Telepítés**. Így az URL ugyanaz marad.
 
-Ellenőrzés: a webalkalmazás URL-je böngészőben megnyitva ezt írja: „A Forintnapló szinkron működik (1. verzió).”
+Ellenőrzés: a webalkalmazás URL-je böngészőben megnyitva ezt írja: „A Forintnapló szinkron működik (2. verzió).”
+
+### Ha az 1. verziót már beállítottad
+
+Töltsd fel az új `index.html`-t és `sw.js`-t a GitHubra, és frissítsd a `Code.gs`-t a fenti módon (Új verzió!). A táblázatodhoz nem kell nyúlnod: az első szinkronnál a szkript létrehozza a Számlák, Átvezetések és Tartozások lapot, és a Tranzakciók lapra felveszi a Számla oszlopot. Amíg a régi szkript fut, az app szól, és az új adatok a telefonon várnak.
 
 ## Biztonsági mentés
 
