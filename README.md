@@ -2,17 +2,20 @@
 
 Telefonra tehető pénzügyi napló. GitHub Pages-en fut, internet nélkül is megnyílik, és minden mentést beír egy Google Táblázatba. A táblázat csak tárolásra kell, hogy semmi ne vesszen el. A tervezés és a rögzítés az appban történik.
 
-A lapok között a bal felső hamburger menüvel váltasz:
+Az app három, egymástól **teljesen független** részből áll. Egymás adatait nem látják és nem módosítják: egy költés vagy a költségvetésbe kerül, vagy egy event költései közé, egy tartozás pedig csak a tartozások között van. A részek között a bal felső hamburger menüvel váltasz.
 
-- **Áttekintés:** a költhető pénzed (megtakarítás nélkül), teendők (esedékes fizetés, lakbér, előfizetés, félretétel, határidők), az aktuális hónap kerete hó végi előrejelzéssel, közelgő eventek.
-- **Havi keret:** a hónap terve és a tényleges költés tételenként. Az „Eventek” sorban eventenként bontva látod, mire ment a pénz. Itt adod meg az eltéréseket és az egyszeri tételeket.
+**1. Költségvetés**
+- **Áttekintés:** a költhető pénzed (megtakarítás nélkül), teendők (esedékes fizetés, lakbér, előfizetés, félretevés), az aktuális hónap kerete hó végi előrejelzéssel.
+- **Havi keret:** a hónap terve és a tényleges költés tételenként. Itt adod meg az eltéréseket és az egyszeri tételeket.
 - **Tranzakciók:** kiadások, bevételek és átvezetések napokra bontva, szűréssel és kereséssel.
 - **Költségterv:** a havi alaptervet itt építed fel a nulláról.
-- **Event költségvetés:** minden eventnek saját költségvetése kategóriánként (event, szállás, utazás, étel, bármi más), határidőkkel, és egy idei összesítő. Független a havi kerettől.
-- **Tartozások:** önálló nyilvántartás arról, ki mennyivel tartozik neked, és te kinek, határidővel. Nem számít bele a havi keretbe és a költhető pénzbe.
 - **Számlák:** a költhető számláid: bankszámla, készpénz, hitelkártya.
-- **Megtakarítás és befektetés:** külön oldal a megtakarítási és tőzsdei számláknak és a céloknak. Ezek nem számítanak költhető pénznek.
+- **Megtakarítás és befektetés:** a megtakarítási és tőzsdei számlák és a célok. Ezek nem számítanak költhető pénznek.
 - **Statisztika:** havi bevétel és kiadás egy évre, kiadás csoportonként.
+
+**2. Tartozások:** ki mennyivel tartozik neked, és te kinek, határidővel és részletfizetéssel. Nem hat a számlák egyenlegére és a havi keretre.
+
+**3. Event költségvetés:** minden eventnek saját költségvetése van kategóriánként (event, szállás, utazás, étel, vagy bármi más), és a költéseit is itt rögzíted. Éves összesítő (tervezett, elköltött, a közelgőkből még hátralévő, kategóriánként) és eventenkénti összesítő, határidőkkel.
 
 ## Így építed fel a költségtervet
 
@@ -27,14 +30,14 @@ Az oldal tetején azonnal látod: *bevétel − fix kiadások − havi keretek �
 
 Az alapterv **minden hónapra magától érvényes**. Ha egy hónap eltér (pl. decemberben több az ajándék), a Havi keret oldalon az „Eltérés ebben a hónapban” gombbal csak arra a hónapra írod át. Az „+ Egyszeri tétel” gombbal pedig olyat veszel fel, ami csak abban a hónapban van.
 
-## Eventek: két külön rész
+## Event költségvetés
 
-- **A havi keretben** az eventekre egy „Eventek” keretet adsz meg (pl. 60 000 Ft/hó). Minden event költés erre számít, és alatta eventenként bontva látod, mire ment.
-- **Az Event költségvetésben** minden eventnek saját terve van kategóriánként (pl. Warsaw Halloween Swing: event 45 000, szállás 35 000, utazás 17 000, étel 35 000). Ez független a havi kerettől, mert egy event költései több hónapra is eloszolhatnak. Itt látod eventenként és az egész évre, mennyit terveztél, mennyit költöttél, és mennyi van még hátra.
+1. **+ Új esemény:** név, dátum, helyszín, és a költségvetés kategóriánként (pl. event 45 000, szállás 35 000, utazás 17 000, étel 35 000). Saját kategóriát is felvehetsz.
+2. Az event oldalán a **+ Költés** gombbal rögzíted, mire mennyit költöttél. Idegen pénznemben is, napi árfolyammal.
+3. **Határidők:** pl. „Jegy második részlete, okt. 5., 25 000 Ft”. A „Fizetve” gomb rögzíti a költést, és késznek jelöli a határidőt.
+4. Az Event költségvetés főoldalán évenként látod: mennyit terveztél és költöttél összesen, kategóriánként, mennyi van még hátra a közelgő eventekből, és a közelgő határidőket.
 
-Event költést kétféleképpen rögzíthetsz: az Áttekintésben az **Event** gombbal, vagy kiadásnál az „Eventek” tételt választva. Ilyenkor megjelenik a „Melyik event?” mező és a kategória (event, szállás, utazás, étel…). Ha nem konkrét eventhez tartozik (pl. egy bulijegy), hagyd üresen.
-
-Ha egy új fix tétel e havi napja már elmúlt, arra a hónapra nem kér rögzítést, mert valószínűleg már kifizetted. Jövő hónaptól emlékeztet.
+Ha a havi költségvetésben is szeretnél helyet hagyni az eventeknek, vegyél fel a Költségtervben egy „Eventek” keretet. Ez a havi keret része, az Event költségvetéstől független.
 
 ## Megtakarítás és befektetés
 
@@ -46,8 +49,6 @@ Ha egy új fix tétel e havi napja már elmúlt, arra a hónapra nem kér rögz�
 
 ## Tippek
 
-- **Közös költség:** kiadásnál kapcsold be a „Megosztom másokkal” kapcsolót. A saját részed kiadás lesz, a többieké a Tartozások közé kerül. Ha más fizetett, a te részed kiadás, és ennyivel tartozol neki.
-- **Tartozás és számla:** a tartozásoknál a számla alapból üres, ilyenkor semmilyen egyenleget nem érint. Ha megadod (pl. készpénzben adtál kölcsön), a számla egyenlegén is látszik.
 - **Devizás költés:** a Ft helyett válassz pénznemet (EUR, PLN…). Az app lekéri a napi árfolyamot, és forintban rögzít. Az eredeti összeg és az árfolyam is megmarad.
 - **Gyorsindítás (Android):** tartsd nyomva az app ikonját: Új kiadás, Új bevétel, Új tartozás.
 
@@ -86,7 +87,7 @@ Szinkron nélkül az adatok csak a telefonon vannak. Ha törlöd az ikont vagy a
 
 A jobb felső sarokban ezután a „Szinkronizálva” felirat látszik. Az első szinkronnál a szkript létrehozza a lapokat, és feltölti, amit addig a telefonon rögzítettél.
 
-A táblázat lapjai: **Költségterv** (az alapterv), **Terv** (havi eltérések és egyszeri tételek), **Tranzakciók**, **Számlák**, **Átvezetések**, **Értékelések** (befektetések értéke), **Tartozások**, **Események**, **Határidők**, **Célok**. Kézzel is javíthatsz bennük, csak az **Azonosító** oszlophoz ne nyúlj. Az egyenlegeket és összesítőket az app számolja.
+A táblázat lapjai: a költségvetéshez **Költségterv** (az alapterv), **Terv** (havi eltérések és egyszeri tételek), **Tranzakciók**, **Számlák**, **Átvezetések**, **Értékelések** (befektetések értéke), **Célok**; külön a **Tartozások**; az eventekhez **Események**, **Event költések**, **Határidők**. Kézzel is javíthatsz bennük, csak az **Azonosító** oszlophoz ne nyúlj. Az egyenlegeket és összesítőket az app számolja.
 
 Ha internet nélkül mentesz, az app megjegyzi a változásokat („N feltöltésre vár”), és amikor legközelebb van net, feltölti őket.
 
@@ -115,6 +116,8 @@ Ha a Mentésnél hibát kapsz, a Code.gs frissítése után valószínűleg még
 
 ## Frissítés
 
+**A 7. verzióhoz (különálló részek):** töltsd fel az új fájlokat, és frissítsd a `Code.gs`-t („Új verzió”). A táblázatban magától létrejön az Event költések lap. A korábban kiadásként rögzített event költések a költségvetésben maradnak; ha az Event költségvetésben is kellenek, ott rögzítsd újra őket.
+
 **A Discord értesítéshez (6. verzió):** töltsd fel az új `index.html`-t és `sw.js`-t, és frissítsd a `Code.gs`-t az alábbi módon. Telepítéskor a Google új engedélyt kér: külső szolgáltatás elérése (a Discord) és időzített futtatás. Ezeket engedélyezd.
 
 **A 4-es verzióról:** töltsd fel az új `index.html`-t és `sw.js`-t a GitHubra, és frissítsd a `Code.gs`-t az alábbi módon („Új verzió”). A táblázatodhoz nem kell nyúlnod, az Események lapra magától felkerül a Költségvetés oszlop.
@@ -123,7 +126,7 @@ Ha új fájlokat kapsz, töltsd fel őket ugyanígy (**Add file → Upload files
 
 Ha a `Code.gs` is változik: a táblázatban **Bővítmények → Apps Script**, cseréld le a kódot, írd vissza a TOKEN-t, **Mentés**, majd **Telepítés → Telepítések kezelése → ceruza ikon → Verzió: Új verzió → Telepítés**. Így az URL ugyanaz marad.
 
-Ellenőrzés: a webalkalmazás URL-je böngészőben megnyitva ezt írja: „A Forintnapló szinkron működik (6. verzió).”
+Ellenőrzés: a webalkalmazás URL-je böngészőben megnyitva ezt írja: „A Forintnapló szinkron működik (7. verzió).”
 
 ## Biztonsági mentés
 

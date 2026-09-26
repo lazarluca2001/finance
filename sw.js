@@ -1,5 +1,5 @@
 // Forintnapló – offline működés. Új kiadásnál emeld a verziót, hogy a telefon észrevegye.
-const CACHE = 'forintnaplo-6.0.0';
+const CACHE = 'forintnaplo-7.0.0';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

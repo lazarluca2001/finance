@@ -1,9 +1,9 @@
 /**
- * Forintnapló – Google Táblázat szinkron (6. verzió)
+ * Forintnapló – Google Táblázat szinkron (7. verzió)
  *
  * A telefonos Forintnapló ezen keresztül olvassa és írja a táblázatot:
- * Költségterv, Terv, Tranzakciók, Számlák, Átvezetések, Értékelések, Tartozások,
- * Események, Határidők, Célok. Üres táblázatban magától létrehozza a lapokat.
+ * Költségterv, Terv, Tranzakciók, Számlák, Átvezetések, Értékelések, Célok
+ * (költségvetés), Tartozások, valamint Események, Event költések, Határidők. Üres táblázatban magától létrehozza a lapokat.
  * Kézzel is szerkesztheted őket, csak az Azonosító oszlophoz ne nyúlj.
  *
  * Telepítés és frissítés: lásd README.md.
@@ -11,7 +11,7 @@
 
 const TOKEN = 'ide-a-titkos-szavad';
 
-const VERSION = 6;
+const VERSION = 7;
 const FT = '#,##0 "Ft";-#,##0 "Ft";"–"';
 const INCOME = 'BEVÉTEL';
 const DEBT_PLUS = ['Nekem tartozik', 'Visszafizettem'];   // ettől nő, amennyivel nekem tartoznak
@@ -59,6 +59,11 @@ const SHEETS = {
     name: 'Határidők', key: 'id',
     head: ['Határidő', 'Teendő', 'Összeg', 'Esemény', 'Kész', 'Azonosító'],
     fields: [['date', 'date'], ['title', 'text'], ['amount', 'num'], ['event', 'text'], ['done', 'text'], ['id', 'text']]
+  },
+  eventCost: {
+    name: 'Event költések', key: 'id',
+    head: ['Dátum', 'Event', 'Kategória', 'Összeg', 'Deviza', 'Devizaösszeg', 'Árfolyam', 'Megjegyzés', 'Azonosító'],
+    fields: [['date', 'date'], ['event', 'text'], ['cat', 'text'], ['amount', 'num'], ['currency', 'text'], ['foreignAmount', 'numx'], ['rate', 'numx'], ['note', 'text'], ['id', 'text']]
   },
   goal: {
     name: 'Célok', key: 'id',
@@ -138,6 +143,7 @@ function state_() {
     events: readSheet_('event', tz).filter(function (e) { return e.name; }),
     deadlines: readSheet_('deadline', tz).filter(function (d) { return d.title; }),
     goals: readSheet_('goal', tz).filter(function (g) { return g.name; }),
+    eventCosts: readSheet_('eventCost', tz).filter(function (c) { return c.amount && c.event; }),
     syncedAt: new Date().toISOString()
   };
 }
@@ -367,7 +373,7 @@ function collectDue_(c) {
   if (on('event')) st.events.forEach(function (e) {
     if (!e.start) return; const n = days(e.start);
     if (n < 0 || n > Math.max(1, lead)) return;
-    const spent = st.tx.filter(function (t) { return t.event === e.name; }).reduce(function (s, t) { return s + t.amount; }, 0);
+    const spent = st.eventCosts.filter(function (t) { return t.event === e.name; }).reduce(function (s, t) { return s + t.amount; }, 0);
     out.push({ n: n, t: '🎟️ **' + e.name + '** ' + (n === 0 ? 'ma indul' : when(n) + ' indul') + (e.budget ? ' · eddig ' + ft_(spent) + ' / ' + ft_(e.budget) : '') });
   });
 
