@@ -1,5 +1,5 @@
 /**
- * Forintnapló – Google Táblázat szinkron (4. verzió)
+ * Forintnapló – Google Táblázat szinkron (6. verzió)
  *
  * A telefonos Forintnapló ezen keresztül olvassa és írja a táblázatot:
  * Költségterv, Terv, Tranzakciók, Számlák, Átvezetések, Értékelések, Tartozások,
@@ -11,7 +11,7 @@
 
 const TOKEN = 'ide-a-titkos-szavad';
 
-const VERSION = 4;
+const VERSION = 6;
 const FT = '#,##0 "Ft";-#,##0 "Ft";"–"';
 const INCOME = 'BEVÉTEL';
 const DEBT_PLUS = ['Nekem tartozik', 'Visszafizettem'];   // ettől nő, amennyivel nekem tartoznak
@@ -52,8 +52,8 @@ const SHEETS = {
   },
   event: {
     name: 'Események', key: 'id',
-    head: ['Esemény', 'Kezdés', 'Vége', 'Helyszín', 'Keret', 'Megjegyzés', 'Azonosító'],
-    fields: [['name', 'text'], ['start', 'date'], ['end', 'date'], ['place', 'text'], ['budget', 'num'], ['note', 'text'], ['id', 'text']]
+    head: ['Esemény', 'Kezdés', 'Vége', 'Helyszín', 'Keret', 'Megjegyzés', 'Azonosító', 'Költségvetés'],
+    fields: [['name', 'text'], ['start', 'date'], ['end', 'date'], ['place', 'text'], ['budget', 'num'], ['note', 'text'], ['id', 'text'], ['lines', 'text']]
   },
   deadline: {
     name: 'Határidők', key: 'id',
@@ -79,6 +79,9 @@ function doPost(e) {
   let body;
   try { body = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'hibas_keres' }); }
   if (body.token !== TOKEN) return json_({ ok: false, error: 'rossz_token' });
+  if (body.action === 'notifyConfig') return json_(notifyConfig_(body.config || {}));
+  if (body.action === 'notifyTest') return json_(notifyTest_());
+  if (body.action === 'notifyGet') return json_({ ok: true, config: publicCfg_(getCfg_()) });
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -245,6 +248,153 @@ function removePlan_(row) {
   const r = findPlanRow_(sh, tz, row.month, row.group, row.item);
   if (r) sh.deleteRow(r);
 }
+
+/* ---------- Discord értesítés ---------- */
+
+// Az app „Adatok és szinkron → Discord értesítés” részéből állítható.
+// Minden reggel a megadott órában lefut a napiErtesites függvény, és ha van
+// esedékes tétel, üzenetet küld a Discord-csatornába.
+
+function getCfg_() {
+  try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('notify') || '{}'); } catch (e) { return {}; }
+}
+function publicCfg_(c) { const o = Object.assign({}, c); o.hasWebhook = !!c.webhook; delete o.webhook; return o; }
+
+function notifyConfig_(cfg) {
+  const old = getCfg_();
+  const c = Object.assign({}, old, cfg);
+  if (!cfg.webhook) c.webhook = old.webhook; // a mentett webhookot nem küldjük vissza az appnak
+  if (c.enabled && !/^https:\/\/(discord|discordapp)\.com\/api\/webhooks\//.test(c.webhook || '')) return { ok: false, error: 'rossz_webhook' };
+  c.hour = Math.min(23, Math.max(0, Number(c.hour) || 8));
+  c.lead = Math.min(7, Math.max(0, Number(c.lead) || 0));
+  PropertiesService.getScriptProperties().setProperty('notify', JSON.stringify(c));
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'napiErtesites') ScriptApp.deleteTrigger(t); });
+  if (c.enabled) ScriptApp.newTrigger('napiErtesites').timeBased().atHour(c.hour).everyDays(1).inTimezone(SpreadsheetApp.getActive().getSpreadsheetTimeZone()).create();
+  return { ok: true, config: publicCfg_(c) };
+}
+
+function notifyTest_() {
+  const c = getCfg_();
+  if (!c.webhook) return { ok: false, error: 'nincs_webhook' };
+  const items = collectDue_(c);
+  const res = post_(c, '✅ A Forintnapló értesítés működik.', items.length ? items : ['Ma nincs esedékes tétel. Ha lesz, reggel ' + c.hour + ' órakor itt szólok.']);
+  return { ok: res < 300, error: res < 300 ? null : 'discord_' + res, count: items.length };
+}
+
+// Ezt futtatja a napi időzítő. Kézzel is lefuttathatod az Apps Script szerkesztőből.
+function napiErtesites() {
+  const c = getCfg_();
+  if (!c.enabled || !c.webhook) return;
+  const items = collectDue_(c);
+  if (items.length) post_(c, null, items);
+}
+
+function post_(c, intro, lines) {
+  const app = c.appUrl || '';
+  let desc = lines.join('\n');
+  if (desc.length > 3900) desc = desc.slice(0, 3900) + '\n…';
+  const payload = {
+    username: 'Forintnapló',
+    avatar_url: app ? app.replace(/[^/]*$/, '') + 'icon-192.png' : undefined,
+    content: intro || undefined,
+    embeds: [{ title: 'Mai teendők', description: desc, color: 0x2E7A66, url: app || undefined }]
+  };
+  const r = UrlFetchApp.fetch(c.webhook, { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true });
+  return r.getResponseCode();
+}
+
+function collectDue_(c) {
+  const ss = SpreadsheetApp.getActive(), tz = ss.getSpreadsheetTimeZone();
+  const st = state_();
+  const todayS = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const T = toDate_(todayS).getTime();
+  const days = function (d) { return Math.round((toDate_(d).getTime() - T) / 864e5); };
+  const lead = Number(c.lead) || 0;
+  const types = c.types || {};
+  const on = function (k) { return types[k] !== false; };
+  const when = function (n) { return n < 0 ? (-n) + ' napja lejárt' : n === 0 ? 'ma' : n === 1 ? 'holnap' : n + ' nap múlva'; };
+  const out = [];
+  const m0 = todayS.slice(0, 7), m1 = addMonth_(m0, 1);
+
+  // Költségterv: fix kiadás, bevétel, félretevés
+  [m0, m1].forEach(function (m) {
+    st.recurring.forEach(function (r) {
+      if (r.active === 'nem' || r.mode === 'keret' || (r.from && r.from > m) || (r.to && r.to < m)) return;
+      if (String(r.skipped || '').split(',').map(function (x) { return x.trim(); }).indexOf(m) >= 0) return;
+      const mode = r.group === 'BEVÉTEL' ? 'inc' : r.group === 'MEGTAKARÍTÁS' ? 'save' : 'fix';
+      if (!on(mode)) return;
+      const due = m + '-' + pad_(Math.min(Number(r.day) || 1, dim_(m)));
+      const n = days(due);
+      if (n > lead || n < -3) return;
+      const done = mode === 'save'
+        ? st.transfers.some(function (t) { return t.date.slice(0, 7) === m && t.to === r.item; })
+        : st.tx.some(function (t) { return t.date.slice(0, 7) === m && t.group === r.group && t.item === r.item; });
+      if (done) return;
+      const icon = mode === 'inc' ? '💰' : mode === 'save' ? '🐷' : '📌';
+      const what = mode === 'inc' ? r.item + ' érkezik' : mode === 'save' ? 'Félretenni → ' + r.item : r.item;
+      out.push({ n: n, t: icon + ' **' + what + '**: ' + ft_(r.amount) + ' (' + when(n) + ')' });
+    });
+  });
+
+  // Határidők
+  if (on('deadline')) st.deadlines.forEach(function (d) {
+    if (d.done === 'igen' || !d.date) return;
+    const n = days(d.date); if (n > lead || n < -7) return;
+    out.push({ n: n, t: '⏰ **' + d.title + '**' + (d.event ? ' · ' + d.event : '') + (d.amount ? ': ' + ft_(d.amount) : '') + ' (' + when(n) + ')' });
+  });
+
+  // Tartozások határidővel
+  if (on('debt')) {
+    const ppl = {};
+    st.debts.forEach(function (d) {
+      const k = d.person; ppl[k] = ppl[k] || { net: 0, dues: [] };
+      const plus = d.type === 'Nekem tartozik' || d.type === 'Visszafizettem';
+      ppl[k].net += (plus ? 1 : -1) * d.amount;
+      if (d.due && (d.type === 'Nekem tartozik' || d.type === 'Én tartozom')) ppl[k].dues.push({ type: d.type, due: d.due });
+    });
+    Object.keys(ppl).forEach(function (k) {
+      const p = ppl[k]; if (Math.abs(p.net) < 1) return;
+      const dir = p.net > 0 ? 'Nekem tartozik' : 'Én tartozom';
+      const dues = p.dues.filter(function (x) { return x.type === dir; }).map(function (x) { return x.due; }).sort();
+      if (!dues.length) return;
+      const next = dues.filter(function (x) { return x >= todayS; })[0] || dues[dues.length - 1];
+      const n = days(next); if (n > lead || n < -7) return;
+      out.push({ n: n, t: '🤝 **' + k + '** ' + (p.net > 0 ? 'tartozik neked' : 'neki tartozol') + ': ' + ft_(Math.abs(p.net)) + ' (' + when(n) + ')' });
+    });
+  }
+
+  // Közelgő eventek
+  if (on('event')) st.events.forEach(function (e) {
+    if (!e.start) return; const n = days(e.start);
+    if (n < 0 || n > Math.max(1, lead)) return;
+    const spent = st.tx.filter(function (t) { return t.event === e.name; }).reduce(function (s, t) { return s + t.amount; }, 0);
+    out.push({ n: n, t: '🎟️ **' + e.name + '** ' + (n === 0 ? 'ma indul' : when(n) + ' indul') + (e.budget ? ' · eddig ' + ft_(spent) + ' / ' + ft_(e.budget) : '') });
+  });
+
+  // Havi keret: 90% és túllépés, hónaponként egyszer
+  if (on('over')) {
+    const props = PropertiesService.getScriptProperties();
+    st.recurring.forEach(function (r) {
+      if (r.active === 'nem' || r.mode !== 'keret' || (r.from && r.from > m0) || (r.to && r.to < m0)) return;
+      const ov = st.plan.filter(function (p) { return p.month === m0 && p.group === r.group && p.item === r.item; })[0];
+      const planned = ov ? ov.planned : r.amount; if (!planned) return;
+      const actual = st.tx.filter(function (t) { return t.date.slice(0, 7) === m0 && t.group === r.group && (t.item === r.item || r.group === 'EVENTEK'); }).reduce(function (s, t) { return s + t.amount; }, 0);
+      const lvl = actual > planned ? 'over' : actual >= planned * 0.9 ? 'warn' : '';
+      if (!lvl) return;
+      const key = 'sent:' + lvl + ':' + m0 + ':' + r.group + ':' + r.item;
+      if (props.getProperty(key)) return;
+      props.setProperty(key, '1');
+      out.push({ n: -99, t: (lvl === 'over' ? '🔴 **' + r.item + '** kerete túllépve: ' : '🟠 **' + r.item + '** keret 90%-a elfogyott: ') + ft_(actual) + ' / ' + ft_(planned) });
+    });
+  }
+
+  return out.sort(function (a, b) { return a.n - b.n; }).map(function (x) { return '• ' + x.t; });
+}
+
+function addMonth_(m, d) { const p = m.split('-').map(Number); const dt = new Date(p[0], p[1] - 1 + d, 1); return dt.getFullYear() + '-' + pad_(dt.getMonth() + 1); }
+function dim_(m) { const p = m.split('-').map(Number); return new Date(p[0], p[1], 0).getDate(); }
+function pad_(n) { return (n < 10 ? '0' : '') + n; }
+function ft_(n) { return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Ft'; }
 
 /* ---------- segédek ---------- */
 
